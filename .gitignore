@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+
+# CAD and EDA generated output
+mechanical/exports/*
+!mechanical/exports/.gitkeep
+mechanical/previews/*
+!mechanical/previews/.gitkeep
+electrical/wiring/out/*
+!electrical/wiring/out/.gitkeep
+electrical/reports/*
+!electrical/reports/.gitkeep
+electrical/kicad/*-backups/
+electrical/kicad/*.lck
+electrical/kicad/~*
+
+# Firmware build products
+.pio/
+build/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/settings.json

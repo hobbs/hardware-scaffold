@@ -1,0 +1,12 @@
+[project]
+name = "Untitled hardware project"
+slug = "untitled-hardware"
+status = "concept"
+revision = "0.1"
+units = "mm"
+
+[owners]
+design = ""
+electrical = ""
+firmware = ""
+mechanical = ""

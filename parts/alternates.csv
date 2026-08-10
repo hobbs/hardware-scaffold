@@ -1,0 +1,2 @@
+part_id,candidate_manufacturer,candidate_part_number,variant,evaluation_status,advantages,disadvantages,compatibility_or_changes,source_ids,notes
+PART-001,TBD,TBD,TBD,Not evaluated,TBD,TBD,TBD,SRC-001,Replace this starter row

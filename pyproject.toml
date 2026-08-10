@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hardware-project-mechanical"
+version = "0.1.0"
+description = "CadQuery mechanical model for a hardware project scaffold"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+]
+
+[project.optional-dependencies]
+mechanical = [
+  "cadquery==2.8.0",
+]
+dev = [
+  "pytest==8.4.2",
+]
+viewer = [
+  "ocp-vscode==2.9.0",
+]
+wiring = [
+  "wireviz==0.4.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "mechanical/src"}
+
+[tool.setuptools.packages.find]
+where = ["mechanical/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["mechanical/tests"]
+addopts = "-q"

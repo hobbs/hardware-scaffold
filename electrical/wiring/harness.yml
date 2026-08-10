@@ -1,0 +1,29 @@
+# Starter only: replace with project-specific PART/INT IDs and real pin positions.
+# Connector numbering is viewed from the mating face unless a connector note says
+# otherwise.
+metadata:
+  title: "Prototype harness — replace starter"
+  revision: "0.1"
+
+connectors:
+  CTRL:
+    type: "Controller header (PART-001 placeholder)"
+    subtype: female
+    pinlabels: ["+3V3", "GND", "I2C1_SDA", "I2C1_SCL"]
+  SENSOR:
+    type: "Sensor header (placeholder)"
+    subtype: female
+    pinlabels: ["VIN", "GND", "SDA", "SCL"]
+
+cables:
+  W1:
+    wirecount: 4
+    gauge: 28 AWG
+    length: 0.10
+    colors: [RD, BK, GN, WH]
+
+connections:
+  -
+    - CTRL: [1, 2, 3, 4]
+    - W1: [1, 2, 3, 4]
+    - SENSOR: [1, 2, 3, 4]

@@ -1,0 +1,2 @@
+part_id,category,description,manufacturer,manufacturer_part_number,variant,quantity,unit_cost,currency,supplier,supplier_sku,source_ids,status,notes
+PART-001,TBD,TBD,TBD,TBD,TBD,1,,,,,SRC-001,Proposed,Replace this starter row
