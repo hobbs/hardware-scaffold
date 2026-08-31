@@ -8,7 +8,7 @@ The workspace separates reusable process from project evidence:
 
 - `docs/domains/` contains engineering playbooks.
 - `templates/project/` contains reference artifacts for each design stage.
-- `.agents/skills/init-project/` contains the project initialization skill.
+- `.agents/skills/` contains project initialization and datasheet-capture skills.
 - `scripts/` contains initialization and progressive project checks.
 - `projects/<slug>/` contains local project repositories and is never tracked here.
 
@@ -79,7 +79,7 @@ Within a project:
 | System blocks and responsibilities | `docs/system-design.md` |
 | Cross-domain contracts | `docs/interfaces.md` |
 | Selected and alternate purchasable parts | `parts/bom.csv`, `parts/alternates.csv` |
-| Ratings and vendor claims | `references/` and `references/sources.csv` |
+| Ratings, pinouts, and vendor claims | `references/PART-###/pinout-and-specs.md`, backed by `references/sources.csv` and permitted raw files |
 | Logical electrical connectivity | KiCad source under `electrical/kicad/` |
 | Buildable wire harness | `electrical/wiring/harness.yml` |
 | Dimensions, placement, and manufactured geometry | CadQuery source under `mechanical/` |

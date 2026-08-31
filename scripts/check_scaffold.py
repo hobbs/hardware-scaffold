@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".agents/skills/init-project/SKILL.md",
     ".claude/skills/init-project/SKILL.md",
+    ".agents/skills/capture-datasheets/SKILL.md",
+    ".claude/skills/capture-datasheets/SKILL.md",
     "AGENTS.md",
     "CLAUDE.md",
     "README.md",
@@ -54,13 +56,15 @@ def main() -> int:
     if "projects/" not in ignore_lines:
         errors.append(".gitignore must ignore projects/")
 
-    skill = ROOT / ".agents/skills/init-project/SKILL.md"
-    if skill.exists():
+    for skill_name in ("init-project", "capture-datasheets"):
+        skill = ROOT / f".agents/skills/{skill_name}/SKILL.md"
+        if not skill.exists():
+            continue
         skill_text = skill.read_text(encoding="utf-8")
-        if not skill_text.startswith("---\nname: init-project\n"):
-            errors.append("init-project skill has invalid frontmatter")
+        if not skill_text.startswith(f"---\nname: {skill_name}\n"):
+            errors.append(f"{skill_name} skill has invalid frontmatter")
         if "description:" not in skill_text.split("---", 2)[1]:
-            errors.append("init-project skill is missing a description")
+            errors.append(f"{skill_name} skill is missing a description")
 
     for path in visible_markdown():
         text = path.read_text(encoding="utf-8")

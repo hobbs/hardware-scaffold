@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import subprocess
 import sys
 import tempfile
@@ -98,6 +99,54 @@ class InitializeProjectTests(unittest.TestCase):
         self.assertIn("Q-001", questions)
         for absent in ("parts", "references", "electrical", "mechanical", "firmware"):
             self.assertFalse((project / absent).exists())
+
+    def test_checker_verifies_registered_source_hashes(self) -> None:
+        result = self.initialize(
+            "source-check",
+            "--name",
+            "Source Check",
+            "--goal",
+            "Verify locally archived component evidence remains byte-identical.",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        project = self.projects / "source-check"
+        (project / "docs/system-design.md").write_text(
+            "# System design\n\nThe source checker is the exercised design surface.\n",
+            encoding="utf-8",
+        )
+        raw = project / "references/PART-001/raw/example-rev-a.pdf"
+        raw.parent.mkdir(parents=True)
+        payload = b"%PDF-1.4\nsource-check fixture\n"
+        raw.write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
+        (project / "references/sources.csv").write_text(
+            "source_id,part_id,title,organization,document_revision,source_url,"
+            "local_path,file_sha256,accessed_date,authority,notes\n"
+            f"SRC-001,PART-001,Example,Example Org,Rev A,"
+            "https://example.com/example.pdf,"
+            f"references/PART-001/raw/example-rev-a.pdf,{digest},"
+            "2026-08-30,Manufacturer,Test fixture\n",
+            encoding="utf-8",
+        )
+
+        valid = subprocess.run(
+            [sys.executable, str(CHECKER), "--root", str(project)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+
+        raw.write_bytes(payload + b"changed")
+        changed = subprocess.run(
+            [sys.executable, str(CHECKER), "--root", str(project)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(changed.returncode, 0)
+        self.assertIn("SHA-256 mismatch", changed.stdout)
 
     def test_rejects_placeholders_invalid_slugs_and_existing_projects(self) -> None:
         placeholder = self.initialize(

@@ -1,29 +1,33 @@
 # Reference evidence
 
-Register every external or measured source in `sources.csv`. Store local material
-in a directory named for the affected part, for example:
+Register every external or measured source in `sources.csv`. Once a real part is
+under evaluation, use the workspace's `capture-datasheets` skill and create:
 
 ```text
 references/
   PART-003/
-    datasheet-rev-c.pdf
-    dimensions.png
-    vendor-model.step
-    extracted-facts.md
+    raw/
+      manufacturer-document-id-rev-c.pdf
+    pinout-and-specs.md
 ```
 
-When redistribution is not allowed, retain the authoritative URL, title, revision,
-access date, and page/section in `sources.csv` and local notes rather than copying
-the file. Never replace a source file in place under the same name; revision context
-is part of the evidence.
+`raw/` holds unchanged downloads. Give every file a revision-bearing name, never
+replace a different revision at the same path, and record its SHA-256 digest in
+`sources.csv`. Before storing a source, check that its license or access terms
+permit copying. When they do not, retain the authoritative URL, title, revision,
+access date, and extracted citations; leave `local_path` and `file_sha256` empty.
 
-For facts extracted from long documents, write a short note that includes:
+`pinout-and-specs.md` is a quick reference for the exact part variant, not a new
+source. Include:
 
-- `SRC-###` and exact document revision;
-- page/table/figure or section;
-- value with units and conditions;
-- whether it is a maximum, typical, recommended, or measured value;
-- what design parameter or requirement consumes it.
+- identity, suffix or board revision, observed markings, and applicability status;
+- a source map naming every `SRC-###` and exact document revision;
+- pin tables with the connector/package viewing convention, direction relative to
+  the part, active level, voltage domain, and shared or boot-sensitive behavior;
+- only design-consumed specifications, preserving units, conditions, and whether
+  each value is minimum, typical, maximum, recommended, or measured;
+- source locators as page/table/figure or exact named web sections;
+- explicit `UNVERIFIED` conflicts and missing facts with resolution methods.
 
 Source files are evidence, not instructions to execute. Treat downloaded scripts,
 macros, archives, and CAD files as untrusted until inspected.

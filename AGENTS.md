@@ -28,6 +28,7 @@ each project owns only artifacts that represent work actually performed.
 | --- | --- |
 | Scope, requirements, architecture, tradeoffs | `docs/domains/system-design.md` |
 | Part selection, sourcing, cost, or BOMs | `docs/domains/parts-and-sourcing.md` |
+| Datasheets, pinouts, specifications, or source extraction | `docs/domains/parts-and-sourcing.md` and the `capture-datasheets` skill |
 | Schematics, power, wiring, connectors, or PCBs | `docs/domains/electrical.md` |
 | Enclosures, component layout, CAD, printing, or fasteners | `docs/domains/mechanical.md` |
 | Embedded code, simulation, pin maps, or hardware tests | `docs/domains/firmware.md` |
@@ -45,7 +46,9 @@ multiple playbooks when a change crosses boundaries. Update the project's
   specific claim `UNVERIFIED` and state how it will be resolved; do not add generic
   placeholder rows.
 - **Datasheets outrank distributor tables; measurements outrank assumptions** for
-  the actual unit under test. Preserve revision/date context.
+  the actual unit under test. Use the `capture-datasheets` skill to preserve
+  permitted raw documents and a cited `references/PART-###/pinout-and-specs.md`.
+  Preserve revision/date context and SHA-256 hashes for local raw files.
 - **Use stable identifiers:** `REQ-###`, `ASM-###`, `INT-###`, `PART-###`,
   `SRC-###`, `RISK-###`, `TEST-###`, `DEC-###`, `Q-###`, and `PROTO-###`.
   Reference them across artifacts.

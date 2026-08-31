@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -38,6 +39,7 @@ CSV_SCHEMAS = {
         "local_path",
         "accessed_date",
         "authority",
+        "file_sha256",
     },
 }
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
@@ -148,6 +150,52 @@ class Checks:
 
         return loaded, source_ids
 
+    def source_files(self, loaded: dict[str, list[dict[str, str]]]) -> None:
+        for line, row in enumerate(
+            loaded.get("references/sources.csv", []), start=2
+        ):
+            local_path = (row.get("local_path") or "").strip()
+            expected_digest = (row.get("file_sha256") or "").strip().lower()
+            if not local_path:
+                if expected_digest:
+                    self.error(
+                        f"references/sources.csv:{line} has file_sha256 without local_path"
+                    )
+                continue
+
+            path = (self.root / local_path).resolve()
+            if not path.is_relative_to(self.root):
+                self.error(
+                    f"references/sources.csv:{line} local_path escapes project: "
+                    f"{local_path}"
+                )
+                continue
+            if not path.is_file():
+                self.error(
+                    f"references/sources.csv:{line} missing local file: {local_path}"
+                )
+                continue
+            if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+                self.error(
+                    f"references/sources.csv:{line} invalid SHA-256 for {local_path}"
+                )
+                continue
+
+            digest = hashlib.sha256()
+            try:
+                with path.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+            except OSError as exc:
+                self.error(
+                    f"references/sources.csv:{line} cannot hash {local_path}: {exc}"
+                )
+                continue
+            if digest.hexdigest() != expected_digest:
+                self.error(
+                    f"references/sources.csv:{line} SHA-256 mismatch: {local_path}"
+                )
+
     def table_references(
         self, loaded: dict[str, list[dict[str, str]]], source_ids: set[str]
     ) -> None:
@@ -238,6 +286,7 @@ class Checks:
         self.metadata()
         loaded, source_ids = self.csv_files()
         self.table_references(loaded, source_ids)
+        self.source_files(loaded)
         self.markdown_links()
         self.python_syntax()
         self.strict_placeholders()

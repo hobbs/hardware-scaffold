@@ -1,2 +1,2 @@
-source_id,part_id,title,organization,document_revision,source_url,local_path,accessed_date,authority,notes
-SRC-001,PART-001,TBD,TBD,TBD,TBD,TBD,TBD,Unverified,Replace this starter row
+source_id,part_id,title,organization,document_revision,source_url,local_path,file_sha256,accessed_date,authority,notes
+SRC-001,PART-001,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Unverified,Replace this starter row
