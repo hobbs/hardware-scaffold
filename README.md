@@ -46,15 +46,17 @@ and add only real project content.
 make help
 make check
 make init NAME="Desk Monitor" SLUG=desk-monitor GOAL="Measure and display indoor air quality for office occupants."
+make kicad-toolcheck
 make check-project PROJECT=projects/desk-monitor
 make check-strict PROJECT=projects/desk-monitor
 ```
 
 `make check` validates this workspace and exercises project initialization in a
-temporary directory. `check-project` accepts partial projects: metadata and the
-brief are required, while later-stage artifacts are checked only when present.
-`check-strict` additionally rejects placeholders in materialized project
-artifacts.
+temporary directory. `kicad-toolcheck` is the pre-authoring gate for native
+schematic and ERC work; run it before committing to a `.kicad_sch` deliverable.
+`check-project` accepts partial projects: metadata and the brief are required,
+while later-stage artifacts are checked only when present. `check-strict`
+additionally rejects placeholders in materialized project artifacts.
 
 ## Design sequence
 
@@ -79,6 +81,7 @@ Within a project:
 | System blocks and responsibilities | `docs/system-design.md` |
 | Cross-domain contracts | `docs/interfaces.md` |
 | Selected and alternate purchasable parts | `parts/bom.csv`, `parts/alternates.csv` |
+| Temporary module-stack and solderless-breadboard assembly | `electrical/breadboard-wiring.md` |
 | Ratings, pinouts, and vendor claims | `references/PART-###/pinout-and-specs.md`, backed by `references/sources.csv` and permitted raw files |
 | Logical electrical connectivity | KiCad source under `electrical/kicad/` |
 | Buildable wire harness | `electrical/wiring/harness.yml` |

@@ -4,7 +4,7 @@ NAME ?=
 SLUG ?=
 GOAL ?=
 
-.PHONY: help check init check-project check-strict
+.PHONY: help check init check-project check-strict kicad-toolcheck
 
 help: ## Show workspace commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -26,3 +26,7 @@ check-project: ## Validate a progressive project at PROJECT
 check-strict: ## Reject placeholders and incomplete selected parts in PROJECT
 	@test -n "$(PROJECT)" || { echo "PROJECT is required"; exit 1; }
 	@$(PYTHON) scripts/check_project.py --root "$(PROJECT)" --strict
+
+kicad-toolcheck: ## Confirm native KiCad schematic and ERC tooling is available
+	@command -v kicad-cli >/dev/null || { echo "kicad-cli is unavailable. Install KiCad before creating or validating .kicad_sch source; until then, keep work in the interface contract, net registry, and signal-name wiring plan."; exit 1; }
+	@kicad-cli version

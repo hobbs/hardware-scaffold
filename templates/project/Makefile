@@ -3,7 +3,7 @@ VENV_PYTHON := .venv/bin/python
 KICAD_SCH ?= electrical/kicad/project.kicad_sch
 SCAFFOLD_ROOT ?= ../..
 
-.PHONY: help check check-strict cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-erc clean-generated
+.PHONY: help check check-strict cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-toolcheck kicad-erc clean-generated
 
 help:
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -48,8 +48,10 @@ wiring: ## Render WireViz HTML/PNG/SVG/TSV outputs
 	mkdir -p electrical/wiring/out
 	.venv/bin/wireviz -o electrical/wiring/out -O harness electrical/wiring/harness.yml
 
-kicad-erc: ## Run KiCad ERC against KICAD_SCH
-	@command -v kicad-cli >/dev/null || { echo "kicad-cli is required"; exit 1; }
+kicad-toolcheck: ## Confirm native KiCad schematic and ERC tooling is available
+	@$(MAKE) -s -C $(SCAFFOLD_ROOT) kicad-toolcheck
+
+kicad-erc: kicad-toolcheck ## Run KiCad ERC against KICAD_SCH
 	@test -f $(KICAD_SCH) || { echo "No schematic at $(KICAD_SCH); create it or override KICAD_SCH"; exit 1; }
 	mkdir -p electrical/reports
 	kicad-cli sch erc -o electrical/reports/erc.rpt $(KICAD_SCH)

@@ -10,8 +10,13 @@ Recommended progression:
 2. Interface proposals in `docs/interfaces.md`.
 3. KiCad module symbols and schematic.
 4. ERC and manual rating/pin-sharing review.
-5. WireViz harness generated from the reviewed net list.
+5. `breadboard-wiring.md` for temporary module stacks and solderless jumpers, or a
+   WireViz harness for detachable contact-numbered wiring.
 6. Unpowered continuity check and current-limited first power.
 
-Name the primary schematic `electrical/kicad/project.kicad_sch` so the default Make
-target works, or override it: `make kicad-erc KICAD_SCH=path/to/file.kicad_sch`.
+Name the primary schematic `electrical/kicad/project.kicad_sch`. Before authoring
+it, run `make kicad-toolcheck` from the workspace root. A newly initialized project
+does not contain a Makefile; when the schematic becomes real, adapt only the
+`kicad-toolcheck` and `kicad-erc` targets from `templates/project/Makefile` into the
+project's own build command. Then run `make kicad-erc`, or override
+`KICAD_SCH=path/to/file.kicad_sch`.

@@ -3,9 +3,55 @@
 ## Responsibilities
 
 - KiCad schematic: electrical intent, pins, named nets, ratings annotations, ERC.
-- WireViz: the actual harness and connector/contact construction.
+- `electrical/breadboard-wiring.md`: temporary stack, jumper, and bench-power build
+  plan for a solderless-breadboard prototype.
+- WireViz: the actual detachable harness and connector/contact construction.
 - `docs/interfaces.md`: the reviewed contract with mechanical and firmware work.
 - Datasheets and measurements: authority for ratings and behavior.
+
+## Schematic tool and topology gate
+
+Before allocating pins or creating files:
+
+1. Classify the requested artifact. A KiCad schematic owns logical connectivity;
+   `electrical/breadboard-wiring.md` owns how a temporary module-stack or
+   solderless-breadboard prototype is assembled; WireViz owns only a physical
+   harness whose connector positions and viewing conventions are known. “Wiring
+   schematic” may require both the KiCad source and a build plan, but they are not
+   interchangeable.
+2. Record the physical module topology before counting free pins: direct stack,
+   carrier/expansion board, cable, or independent breadboard placement. A direct
+   stack mates every header position even when the upper module consumes only a
+   subset electrically.
+3. Fix the prototype power-injection point and source-coexistence rule before signal
+   wiring. `VBUS`, regulated-rail injection, USB, programmer, and battery paths are
+   different designs.
+4. From the workspace root, run `make kicad-toolcheck` before promising an actual
+   `.kicad_sch` deliverable.
+
+If `kicad-cli` and a compatible schematic editor are unavailable, complete all
+reachable interface, net-name, evidence, and signal-name wiring work, but report
+the actual schematic and ERC as blocked by that missing prerequisite. Do not
+hand-author `.kicad_sch` S-expressions or add an ad hoc generator dependency merely
+to compensate for a missing KiCad installation. Schematic-as-code is acceptable
+only when the project deliberately selects it as its maintained workflow, pins the
+generator, and validates the generated file with native KiCad.
+
+KiCanvas may visually inspect an existing local schematic. Successful parsing in a
+browser viewer is not schematic authoring and does not replace native ERC.
+
+### Breadboard module rules
+
+- For a direct stack, show the module as a stack in the build plan and reserve every
+  electrically consumed signal before allocating pass-through header GPIO.
+- Derive consumed, internally pulled, shared, and no-connect positions from the
+  module schematic—not from the fact that a pad is physically present.
+- Do not create a pin-numbered WireViz harness for a connector whose contact order
+  or mating-face/wire-side convention is unverified. A logical signal-name mapping
+  may proceed with an explicit receiving-inspection gate.
+- Bench-supply instructions must name voltage, injection contact, return, initial
+  current limit or resolution method, and every source that must remain
+  disconnected.
 
 ## Module-based prototype workflow
 
@@ -18,11 +64,14 @@
 4. Draw power, reset/boot, buses, interrupts, chip selects, enables, and unused-pin
    intent. Mark deliberate no-connects.
 5. Run ERC, explain intentional exceptions, and keep the report for release review.
-6. Create a WireViz harness from the reviewed schematic. State connector view,
-   contact numbering, wire gauge, color, length, and termination.
-7. Cross-check every detachable connector end-to-end against
-   `docs/interfaces.md`. Verify continuity on the physical harness before mating.
-8. Write a current-limited bring-up plan with expected resistance and rail values.
+6. For a temporary direct-stack or solderless-breadboard build, adapt
+   `templates/project/electrical/breadboard-wiring.md` into
+   `electrical/breadboard-wiring.md`.
+7. Create a WireViz harness only for detachable, contact-numbered wiring. State
+   connector view, contact numbering, wire gauge, color, length, and termination.
+8. Cross-check every physical connection against `docs/interfaces.md`. Verify
+   continuity before mating or first power.
+9. Write a current-limited bring-up plan with expected resistance and rail values.
 
 ## Electrical review checklist
 

@@ -17,16 +17,40 @@ REQUIRED_PATHS = (
     ".claude/skills/capture-datasheets/SKILL.md",
     "AGENTS.md",
     "CLAUDE.md",
+    "Makefile",
     "README.md",
+    "docs/domains/electrical.md",
     "docs/domains/system-design.md",
     "scripts/check_project.py",
     "scripts/init_project.py",
     "templates/project/.gitignore",
+    "templates/project/Makefile",
     "templates/project/project.toml",
     "templates/project/docs/project-brief.md",
+    "templates/project/electrical/breadboard-wiring.md",
+    "templates/project/electrical/kicad/README.md",
     "templates/project/electrical/wiring/harness.yml",
     "templates/project/mechanical/src/project/assembly.py",
 )
+REQUIRED_TEXT = {
+    "Makefile": ("kicad-toolcheck:",),
+    "docs/domains/electrical.md": (
+        "## Schematic tool and topology gate",
+        "make kicad-toolcheck",
+    ),
+    "templates/project/Makefile": (
+        "kicad-toolcheck:",
+        "kicad-erc: kicad-toolcheck",
+    ),
+    "templates/project/electrical/kicad/README.md": (
+        "## Tool gate",
+        "KiCanvas",
+    ),
+    "templates/project/electrical/breadboard-wiring.md": (
+        "## Physical module topology",
+        "## Bench power connection",
+    ),
+}
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
 
 
@@ -47,6 +71,15 @@ def main() -> int:
     for relative in REQUIRED_PATHS:
         if not (ROOT / relative).exists():
             errors.append(f"missing workspace path: {relative}")
+
+    for relative, required_fragments in REQUIRED_TEXT.items():
+        path = ROOT / relative
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for fragment in required_fragments:
+            if fragment not in text:
+                errors.append(f"{relative} is missing required workflow text: {fragment}")
 
     if (ROOT / "project.toml").exists():
         errors.append("workspace root must not be a device project")
