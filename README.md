@@ -1,86 +1,92 @@
-# Hardware Project Scaffold
+# Hardware Project Workspace
 
-An opinionated, chat-first starter for small devices built from development boards,
-modules, wiring, firmware, and fabricated enclosures. Clone it, open an AI coding
-agent, and describe the device you want to make.
+An opinionated, chat-first workspace for developing small hardware devices. This
+repository is installed once. Each device is initialized under `projects/` as an
+independent Git repository; the workspace repository ignores that directory.
 
-The scaffold treats a device as linked but distinct designs:
+The workspace separates reusable process from project evidence:
 
-- **System:** requirements, architecture, interfaces, risks, and verification.
-- **Electrical:** authoritative connectivity in KiCad and buildable harnesses in
-  WireViz.
-- **Mechanical:** parametric component placement and enclosures in CadQuery.
-- **Firmware:** behavior, pin assignments, builds, and hardware-in-the-loop tests.
-- **Evidence:** part sources, datasheets, calculations, and bench measurements.
+- `docs/domains/` contains engineering playbooks.
+- `templates/project/` contains reference artifacts for each design stage.
+- `.agents/skills/init-project/` contains the project initialization skill.
+- `scripts/` contains initialization and progressive project checks.
+- `projects/<slug>/` contains local project repositories and is never tracked here.
 
-## Start a project
+## Initialize a project
 
-1. Clone this repository for the new project.
-2. Open Codex or Claude in the repository and say what you want to build. A useful
-   first message is:
+Open an agent in this repository and ask it to use the
+[`init-project` skill](.agents/skills/init-project/SKILL.md). Include the device's
+goal and any known constraints:
 
-   > Help me turn this scaffold into a desk air-quality monitor. Start with the
-   > project brief. Ask only for decisions that materially change the architecture;
-   > record other unknowns as assumptions or open questions.
+> Use the init-project skill to start a desk air-quality monitor for a shared
+> office. It will use USB-C power and should cost no more than $100.
 
-3. The agent should update [project.toml](project.toml), then work through
-   [the project brief](docs/project-brief.md) and
-   [the system design](docs/system-design.md) before selecting parts or drawing an
-   enclosure.
-4. Run `make check` frequently. Run `make check-strict` before calling a design
-   revision complete.
+The skill resolves only choices that materially affect the architecture, records
+concrete assumptions and questions, and runs `scripts/init_project.py`. A new
+project starts with:
 
-`AGENTS.md` is the operating manual for coding agents. `CLAUDE.md` imports it so
-both tools follow the same process.
+```text
+projects/<slug>/
+├── .git/
+├── .gitignore
+├── project.toml
+└── docs/
+    ├── project-brief.md
+    └── open-questions.md   # only when real questions exist
+```
 
-## Source-of-truth map
-
-| Fact | Authoritative artifact |
-| --- | --- |
-| User need, constraint, acceptance criterion | `docs/project-brief.md` |
-| System blocks and responsibilities | `docs/system-design.md` |
-| Cross-domain pin, protocol, connector, and mechanical contracts | `docs/interfaces.md` |
-| Selected and alternate purchasable parts | `parts/bom.csv`, `parts/alternates.csv` |
-| Ratings and vendor claims | `references/` plus `references/sources.csv` |
-| Logical electrical connectivity | KiCad schematic under `electrical/kicad/` |
-| Actual wires, colors, gauges, lengths, and connector pins | `electrical/wiring/harness.yml` |
-| Dimensions, placement, clearances, and enclosure geometry | CadQuery under `mechanical/` |
-| Firmware pin assignment and behavior | `firmware/` plus `docs/interfaces.md` |
-| Observed behavior | `docs/measurements.md` and `docs/build-log.md` |
-| Pass/fail evidence | `docs/verification.md` |
+No BOM, schematic, harness, firmware tree, CAD model, test plan, or empty
+placeholder file is created before that work begins. When a design step is
+implemented, use the corresponding file under `templates/project/` as a reference
+and add only real project content.
 
 ## Commands
 
 ```text
-make help            Show available commands
-make check           Validate structure, links, metadata, and tabular schemas
-make check-strict    Also reject unfinished project metadata and placeholder BOM rows
-make cad-setup       Create .venv and install CadQuery/test dependencies
-make cad             Export STEP/STL models and SVG previews
-make cad-test        Run mechanical geometry tests
-make cad-view        Open the model in the OCP CAD Viewer workflow
-make wiring-setup    Install the pinned WireViz tool
-make wiring-check    Parse the harness and generate its tabular BOM
-make wiring          Render the WireViz harness
-make kicad-erc       Run KiCad electrical-rules checks
+make help
+make check
+make init NAME="Desk Monitor" SLUG=desk-monitor GOAL="Measure and display indoor air quality for office occupants."
+make check-project PROJECT=projects/desk-monitor
+make check-strict PROJECT=projects/desk-monitor
 ```
 
-Generated CAD, wiring, and EDA reports are ignored. Deliberately promote small
-review artifacts (for example, a release preview image) when they are useful to
-future builders.
+`make check` validates this workspace and exercises project initialization in a
+temporary directory. `check-project` accepts partial projects: metadata and the
+brief are required, while later-stage artifacts are checked only when present.
+`check-strict` additionally rejects placeholders in materialized project
+artifacts.
 
-## Repository layout
+## Design sequence
 
-```text
-docs/                 Requirements, architecture, decisions, logs, and verification
-references/           Datasheets, drawings, source register, and extracted facts
-parts/                BOM, alternates, and selection records
-electrical/           KiCad project, WireViz harness, net conventions, reports
-mechanical/           CadQuery source, tests, exports, and previews
-firmware/             Firmware source and hardware-test notes
-scripts/              Dependency-light project checks
-```
+1. Frame the goal, constraints, assumptions, and acceptance criteria.
+2. Architect system blocks, power, interfaces, and failure behavior.
+3. Select evidence-backed parts and alternates.
+4. Prototype the electrical, firmware, and mechanical slices that are needed.
+5. Integrate shared interfaces, physical access, assembly order, and service.
+6. Verify requirements and risks with recorded evidence.
+7. Release frozen sources, build outputs, instructions, and known limitations.
+
+The project tree grows with this sequence. Do not copy `templates/project/`
+wholesale and do not skip directly from an idea to parts or enclosure geometry.
+
+## Source-of-truth map
+
+Within a project:
+
+| Fact | Authoritative artifact when implemented |
+| --- | --- |
+| User need, constraint, acceptance criterion | `docs/project-brief.md` |
+| System blocks and responsibilities | `docs/system-design.md` |
+| Cross-domain contracts | `docs/interfaces.md` |
+| Selected and alternate purchasable parts | `parts/bom.csv`, `parts/alternates.csv` |
+| Ratings and vendor claims | `references/` and `references/sources.csv` |
+| Logical electrical connectivity | KiCad source under `electrical/kicad/` |
+| Buildable wire harness | `electrical/wiring/harness.yml` |
+| Dimensions, placement, and manufactured geometry | CadQuery source under `mechanical/` |
+| Firmware behavior and executable pin assignment | `firmware/` and `docs/interfaces.md` |
+| Measurements and pass/fail evidence | `docs/measurements.md`, `docs/verification.md` |
 
 The defaults target module-based, low-voltage prototypes. Battery, charging,
-mains, high-current, high-temperature, pressure, radio, or safety-critical work
-requires a dedicated risk review; see [the safety playbook](docs/domains/safety.md).
+mains, high-current, high-temperature, pressure, radio, motion, laser, or
+safety-critical work requires the
+[safety playbook](docs/domains/safety.md) before release.

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency-free structural checks for the hardware project.
-
-The ordinary mode allows template placeholders while checking coherence. Strict
-mode is a release gate and rejects placeholders in project-owned living artifacts.
-"""
+"""Dependency-free checks for a progressively materialized hardware project."""
 
 from __future__ import annotations
 
@@ -16,25 +12,7 @@ import sys
 import tomllib
 
 
-ROOT = Path(__file__).resolve().parents[1]
-
-REQUIRED_PATHS = (
-    "AGENTS.md",
-    "CLAUDE.md",
-    "project.toml",
-    "docs/project-brief.md",
-    "docs/system-design.md",
-    "docs/interfaces.md",
-    "docs/risks.md",
-    "docs/verification.md",
-    "parts/bom.csv",
-    "references/sources.csv",
-    "electrical/wiring/harness.yml",
-    "mechanical/build.py",
-    "mechanical/src/project/assembly.py",
-    "firmware/README.md",
-)
-
+CORE_PATHS = (".git", "project.toml", "docs/project-brief.md")
 CSV_SCHEMAS = {
     "parts/bom.csv": {
         "part_id",
@@ -62,21 +40,13 @@ CSV_SCHEMAS = {
         "authority",
     },
 }
-
-LIVING_ARTIFACTS = (
-    "docs/project-brief.md",
-    "docs/system-design.md",
-    "docs/interfaces.md",
-    "docs/risks.md",
-    "docs/verification.md",
-    "firmware/README.md",
-)
-
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
+PLACEHOLDER = re.compile(r"\b(?:TBD|TO BE DETERMINED|PLACEHOLDER)\b", re.IGNORECASE)
 IDENTIFIERS = {
     "part_id": re.compile(r"^PART-\d{3}$"),
     "source_id": re.compile(r"^SRC-\d{3}$"),
 }
+LATER_STAGE_ROOTS = ("parts", "references", "electrical", "mechanical", "firmware")
 
 
 @dataclass
@@ -86,7 +56,8 @@ class Finding:
 
 
 class Checks:
-    def __init__(self, strict: bool) -> None:
+    def __init__(self, root: Path, strict: bool) -> None:
+        self.root = root.resolve()
         self.strict = strict
         self.findings: list[Finding] = []
 
@@ -97,12 +68,17 @@ class Checks:
         self.findings.append(Finding("WARN", message))
 
     def required_paths(self) -> None:
-        for relative in REQUIRED_PATHS:
-            if not (ROOT / relative).exists():
+        for relative in CORE_PATHS:
+            if not (self.root / relative).exists():
                 self.error(f"missing required path: {relative}")
+        if any((self.root / relative).exists() for relative in LATER_STAGE_ROOTS):
+            if not (self.root / "docs/system-design.md").is_file():
+                self.error(
+                    "later-stage artifacts require an implemented docs/system-design.md"
+                )
 
     def metadata(self) -> None:
-        path = ROOT / "project.toml"
+        path = self.root / "project.toml"
         if not path.exists():
             return
         try:
@@ -127,19 +103,19 @@ class Checks:
             "paused",
         }:
             self.error("project.toml status is not a recognized lifecycle state")
-        if self.strict and str(project.get("name", "")).startswith("Untitled"):
-            self.error("strict: replace the default project name in project.toml")
-        if self.strict and project.get("slug") == "untitled-hardware":
-            self.error("strict: replace the default project slug in project.toml")
+        slug = project.get("slug")
+        if slug and slug != self.root.name:
+            self.error(
+                f"project.toml slug {slug!r} does not match directory {self.root.name!r}"
+            )
 
     def csv_files(self) -> tuple[dict[str, list[dict[str, str]]], set[str]]:
         loaded: dict[str, list[dict[str, str]]] = {}
         source_ids: set[str] = set()
 
         for relative, required_columns in CSV_SCHEMAS.items():
-            path = ROOT / relative
+            path = self.root / relative
             if not path.exists():
-                self.error(f"missing table: {relative}")
                 continue
             try:
                 with path.open(newline="", encoding="utf-8") as handle:
@@ -153,6 +129,8 @@ class Checks:
             missing = sorted(required_columns - columns)
             if missing:
                 self.error(f"{relative} missing columns: {', '.join(missing)}")
+            if not rows:
+                self.error(f"{relative} is an empty stub; remove it until it has records")
             loaded[relative] = rows
 
             id_column = "source_id" if relative == "references/sources.csv" else "part_id"
@@ -184,32 +162,25 @@ class Checks:
 
         if self.strict:
             for line, row in enumerate(loaded.get("parts/bom.csv", []), start=2):
-                joined = " ".join(row.values()).upper()
-                if "TBD" in joined or "PLACEHOLDER" in joined:
-                    self.error(
-                        f"strict: parts/bom.csv:{line} contains a placeholder"
-                    )
-                if row.get("status") not in {"Selected", "Ordered", "Received", "Verified"}:
+                if row.get("status") not in {
+                    "Selected",
+                    "Ordered",
+                    "Received",
+                    "Verified",
+                }:
                     self.error(
                         f"strict: parts/bom.csv:{line} status is not selected or later"
                     )
-            for line, row in enumerate(
-                loaded.get("references/sources.csv", []), start=2
-            ):
-                joined = " ".join(row.values()).upper()
-                if "TBD" in joined or "UNVERIFIED" in joined or "PLACEHOLDER" in joined:
-                    self.error(
-                        f"strict: references/sources.csv:{line} is unfinished"
-                    )
 
     def markdown_links(self) -> None:
-        for path in ROOT.rglob("*.md"):
-            if any(part.startswith(".") and part != "." for part in path.relative_to(ROOT).parts):
+        for path in self.root.rglob("*.md"):
+            relative = path.relative_to(self.root)
+            if any(part.startswith(".") for part in relative.parts):
                 continue
             try:
                 text = path.read_text(encoding="utf-8")
             except OSError as exc:
-                self.error(f"cannot read {path.relative_to(ROOT)}: {exc}")
+                self.error(f"cannot read {relative}: {exc}")
                 continue
             for raw_target in MARKDOWN_LINK.findall(text):
                 target = raw_target.strip().split(maxsplit=1)[0].strip("<>")
@@ -220,34 +191,49 @@ class Checks:
                     or target.startswith("mailto:")
                 ):
                     continue
-                target_path = target.split("#", 1)[0]
-                resolved = (path.parent / target_path).resolve()
+                resolved = (path.parent / target.split("#", 1)[0]).resolve()
                 if not resolved.exists():
-                    self.error(
-                        f"{path.relative_to(ROOT)} has broken local link: {target}"
-                    )
+                    self.error(f"{relative} has broken local link: {target}")
 
     def python_syntax(self) -> None:
-        for path in (ROOT / "mechanical").rglob("*.py"):
+        for path in self.root.rglob("*.py"):
+            relative = path.relative_to(self.root)
+            if any(part.startswith(".") for part in relative.parts):
+                continue
             try:
                 compile(path.read_text(encoding="utf-8"), str(path), "exec")
             except (OSError, SyntaxError) as exc:
-                self.error(f"invalid Python in {path.relative_to(ROOT)}: {exc}")
-        try:
-            tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            self.error(f"pyproject.toml is invalid: {exc}")
+                self.error(f"invalid Python in {relative}: {exc}")
+        pyproject = self.root / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                tomllib.loads(pyproject.read_text(encoding="utf-8"))
+            except (OSError, tomllib.TOMLDecodeError) as exc:
+                self.error(f"pyproject.toml is invalid: {exc}")
 
     def strict_placeholders(self) -> None:
         if not self.strict:
             return
-        marker = re.compile(r"\b(TBD|TO BE DETERMINED)\b", re.IGNORECASE)
-        for relative in LIVING_ARTIFACTS:
-            path = ROOT / relative
-            if path.exists() and marker.search(path.read_text(encoding="utf-8")):
-                self.error(f"strict: {relative} still contains TBD")
+        for path in self.root.rglob("*"):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(self.root)
+            if any(part.startswith(".") for part in relative.parts):
+                continue
+            if path.suffix.lower() not in {".md", ".csv", ".toml", ".yml", ".yaml"}:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as exc:
+                self.error(f"cannot inspect {relative}: {exc}")
+                continue
+            if PLACEHOLDER.search(text):
+                self.error(f"strict: {relative} contains a placeholder")
 
     def run(self) -> int:
+        if not self.root.is_dir():
+            print(f"ERROR: project root does not exist: {self.root}")
+            return 1
         self.required_paths()
         self.metadata()
         loaded, source_ids = self.csv_files()
@@ -269,13 +255,14 @@ class Checks:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument(
         "--strict",
         action="store_true",
         help="reject placeholders and incomplete release-critical records",
     )
     args = parser.parse_args()
-    return Checks(strict=args.strict).run()
+    return Checks(root=args.root, strict=args.strict).run()
 
 
 if __name__ == "__main__":

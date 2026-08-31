@@ -1,20 +1,25 @@
-# Hardware project agent guide
+# Hardware workspace agent guide
 
-This repository is a reproducible engineering notebook and build source, not just
-a codebase. Help the user move from an idea to a device that can be assembled,
-tested, revised, and understood later.
+This repository is the reusable engineering workspace. Hardware projects live
+under `projects/<slug>/`, are ignored by the workspace repository, and are
+independent Git repositories. The workspace owns playbooks and artifact templates;
+each project owns only artifacts that represent work actually performed.
 
 ## On the first conversation
 
-1. Read `project.toml`, `docs/project-brief.md`, `docs/open-questions.md`, and the
-   current git status.
-2. Summarize the proposed device in one sentence and identify the few unknowns
+1. Determine whether the request concerns the workspace or one project. For a
+   project, read its `project.toml`, existing `docs/project-brief.md`, existing
+   `docs/open-questions.md`, and that project's Git status. Missing future-stage
+   artifacts are expected.
+2. For a new project, use the repository-local `init-project` skill. Do not copy
+   the template tree.
+3. Summarize the proposed device in one sentence and identify the few unknowns
    that could change its architecture: power source, environment, physical scale,
    critical inputs/outputs, fabrication method, and budget.
-3. Make conservative, reversible assumptions for ordinary unknowns and record
+4. Make conservative, reversible assumptions for ordinary unknowns and record
    them. Ask the user only about decisions whose alternatives materially diverge.
-4. Update the brief before producing a shopping list or detailed geometry.
-5. Work from requirements to blocks to interfaces to parts. Do not select a part
+5. Update the brief before producing a shopping list or detailed geometry.
+6. Work from requirements to blocks to interfaces to parts. Do not select a part
    merely because it is familiar.
 
 ## Read the relevant playbook
@@ -29,14 +34,16 @@ tested, revised, and understood later.
 | Batteries, charging, mains, heat, motion, pressure, lasers, or other hazards | `docs/domains/safety.md` |
 | Prototype builds, measurements, or release readiness | `docs/domains/verification.md` |
 
-Read multiple playbooks when a change crosses boundaries. Update
+Playbook paths are relative to this workspace root, not a child project. Read
+multiple playbooks when a change crosses boundaries. Update the project's
 `docs/interfaces.md` first when the change affects another domain.
 
 ## Engineering rules
 
-- **Never invent a specification.** Record its source ID from
-  `references/sources.csv`, or mark it `TBD`/`UNVERIFIED` and explain how it will
-  be resolved.
+- **Never invent a specification.** Record its source ID in the project's
+  `references/sources.csv`. If the claim is needed before verification, label the
+  specific claim `UNVERIFIED` and state how it will be resolved; do not add generic
+  placeholder rows.
 - **Datasheets outrank distributor tables; measurements outrank assumptions** for
   the actual unit under test. Preserve revision/date context.
 - **Use stable identifiers:** `REQ-###`, `ASM-###`, `INT-###`, `PART-###`,
@@ -52,6 +59,10 @@ Read multiple playbooks when a change crosses boundaries. Update
   STEP/STL/SVG, WireViz diagrams, KiCad reports, or firmware build products.
 - **Keep changes buildable.** When source changes, regenerate or test the relevant
   artifact when the toolchain is available and report what was not run.
+- **Do not materialize empty project artifacts.** A project file or directory
+  exists only after its design step has produced real content. Use
+  `templates/project/` as a reference, adapt the relevant artifact, and never copy
+  the template tree wholesale.
 
 ## Required design sequence
 
@@ -67,6 +78,11 @@ Read multiple playbooks when a change crosses boundaries. Update
 6. **Verify:** trace requirements and risks to tests; record results and deviations.
 7. **Release:** freeze sources, BOM, fabrication exports, wiring diagram, firmware,
    assembly instructions, and known limitations under a revision tag.
+
+Materialize only the current step. For example, initialization creates metadata
+and a concrete brief; architecture work creates the system design; part selection
+creates source and BOM records; physical implementation creates the corresponding
+electrical, mechanical, or firmware source.
 
 Do not skip directly from idea to enclosure. Component geometry is meaningful only
 after the real part/revision and connector access requirements are known.
@@ -99,8 +115,8 @@ after the real part/revision and connector access requirements are known.
   assembly STEP for review.
 - Add geometry tests for critical wall thickness, envelope, hole spacing, port
   access, and intentional clearances.
-- Use the workflow in `docs/domains/mechanical.md`; commit source and reviewable
-  intent, not a pile of generated meshes.
+- Use the workflow in the workspace's `docs/domains/mechanical.md`; commit source
+  and reviewable intent, not a pile of generated meshes.
 
 ## Review gates
 
@@ -116,8 +132,9 @@ A module-based prototype is ready to build only when:
   and relevant keep-outs.
 - A bring-up plan gives current-limited first-power steps and expected readings.
 
-A design revision is complete only when `make check-strict` passes and every
-claimed verification has evidence in `docs/verification.md`.
+A design revision is complete only when
+`make check-strict PROJECT=projects/<slug>` passes from the workspace root and
+every claimed verification has evidence in the project's `docs/verification.md`.
 
 ## Safety stop conditions
 
@@ -125,11 +142,14 @@ Do not normalize or silently fill gaps in hazardous designs. Pause design releas
 and surface the risk when battery chemistry/protection is unknown, mains isolation
 is unclear, a component may exceed a rating, polarity is ambiguous, temperature or
 pressure lacks containment, a mechanism can injure, or a safety function depends
-only on unverified software. Follow `docs/domains/safety.md`.
+only on unverified software. Follow the workspace's `docs/domains/safety.md`.
 
 ## Routine checks
 
-Run `make check` after document/table edits. For mechanical changes, run
-`make cad-test cad`; for harness changes, run `make wiring`; for KiCad changes, run
-`make kicad-erc`. If a dependency is unavailable, leave the source coherent and
-state the exact skipped command.
+From the workspace root, run `make check-project PROJECT=projects/<slug>` after
+project document or table edits. For a project with mechanical source, run its
+CadQuery geometry tests and exports; for a harness, render it with WireViz; for a
+KiCad schematic, run ERC. Templates contain example commands, but a project should
+gain its own build command only when the corresponding source exists. If a
+dependency is unavailable, leave the source coherent and state the exact skipped
+command.
