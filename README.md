@@ -54,6 +54,9 @@ make check-strict PROJECT=projects/desk-monitor
 `make check` validates this workspace and exercises project initialization in a
 temporary directory. `kicad-toolcheck` is the pre-authoring gate for native
 schematic and ERC work; run it before committing to a `.kicad_sch` deliverable.
+Once a project has native schematic source and its stage-specific build command,
+`make kicad-pdf` exports the local review PDF with `kicad-cli`; no browser
+renderer is part of the workflow.
 `check-project` accepts partial projects: metadata and the brief are required,
 while later-stage artifacts are checked only when present. `check-strict`
 additionally rejects placeholders in materialized project artifacts.

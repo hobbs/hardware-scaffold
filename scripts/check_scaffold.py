@@ -37,14 +37,16 @@ REQUIRED_TEXT = {
     "docs/domains/electrical.md": (
         "## Schematic tool and topology gate",
         "make kicad-toolcheck",
+        "make kicad-pdf",
     ),
     "templates/project/Makefile": (
         "kicad-toolcheck:",
         "kicad-erc: kicad-toolcheck",
+        "kicad-pdf: kicad-toolcheck",
     ),
     "templates/project/electrical/kicad/README.md": (
         "## Tool gate",
-        "KiCanvas",
+        "make kicad-pdf",
     ),
     "templates/project/electrical/breadboard-wiring.md": (
         "## Physical module topology",

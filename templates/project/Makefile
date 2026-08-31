@@ -1,9 +1,10 @@
 PYTHON ?= python3.12
 VENV_PYTHON := .venv/bin/python
 KICAD_SCH ?= electrical/kicad/project.kicad_sch
+KICAD_PDF ?= electrical/reports/schematic.pdf
 SCAFFOLD_ROOT ?= ../..
 
-.PHONY: help check check-strict cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-toolcheck kicad-erc clean-generated
+.PHONY: help check check-strict cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-toolcheck kicad-erc kicad-pdf clean-generated
 
 help:
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -55,6 +56,11 @@ kicad-erc: kicad-toolcheck ## Run KiCad ERC against KICAD_SCH
 	@test -f $(KICAD_SCH) || { echo "No schematic at $(KICAD_SCH); create it or override KICAD_SCH"; exit 1; }
 	mkdir -p electrical/reports
 	kicad-cli sch erc -o electrical/reports/erc.rpt $(KICAD_SCH)
+
+kicad-pdf: kicad-toolcheck ## Export the schematic as a local review PDF
+	@test -f $(KICAD_SCH) || { echo "No schematic at $(KICAD_SCH); create it or override KICAD_SCH"; exit 1; }
+	mkdir -p $(dir $(KICAD_PDF))
+	kicad-cli sch export pdf --output $(KICAD_PDF) $(KICAD_SCH)
 
 clean-generated: ## Remove ignored generated outputs but preserve source
 	@find mechanical/exports -type f -delete

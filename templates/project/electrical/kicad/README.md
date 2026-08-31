@@ -12,8 +12,9 @@ Use a native KiCad-compatible editor for `.kicad_sch` source and native
 interface contract, net registry, and signal-name wiring plan, but do not fabricate
 the schematic through hand-written S-expressions or a one-off generator.
 
-KiCanvas can open an existing `project.kicad_sch` with **Open from local** for
-read-only visual review. Loading successfully in KiCanvas is not ERC.
+Generate the review artifact locally with `make kicad-pdf`; it runs
+`kicad-cli sch export pdf` against `project.kicad_sch` by default. PDF export is
+not ERC and does not replace visual inspection in KiCad.
 
 Schematic-as-code is a project-level workflow decision, not an automatic fallback.
 If selected, pin the generator dependency, commit the maintained generator source,
@@ -27,8 +28,9 @@ Before the first schematic:
   or explicit notes; do not imply those pins are free.
 - Configure ERC intentionally. Waivers need a visible reason, not blanket excludes.
 
-When the schematic first exists, adapt the relevant `kicad-toolcheck` and
-`kicad-erc` targets from `templates/project/Makefile` into the project's own build
-command; do not copy unrelated stage targets. Run `make kicad-erc` after edits.
-Inspect both the report and the schematic visually; ERC does not validate ratings,
+When the schematic first exists, adapt the relevant `kicad-toolcheck`,
+`kicad-erc`, and `kicad-pdf` targets from `templates/project/Makefile` into the
+project's own build command; do not copy unrelated stage targets. Run
+`make kicad-erc` and `make kicad-pdf` after edits. Inspect the ERC report,
+generated PDF, and schematic in KiCad; these checks do not validate ratings,
 power-path behavior, connector orientation, or physical stack alignment.

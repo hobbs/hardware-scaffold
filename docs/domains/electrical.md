@@ -37,8 +37,10 @@ to compensate for a missing KiCad installation. Schematic-as-code is acceptable
 only when the project deliberately selects it as its maintained workflow, pins the
 generator, and validates the generated file with native KiCad.
 
-KiCanvas may visually inspect an existing local schematic. Successful parsing in a
-browser viewer is not schematic authoring and does not replace native ERC.
+Generate review PDFs locally from native schematic source with
+`kicad-cli sch export pdf`, normally through the project's `make kicad-pdf`
+target. A successful PDF export does not replace native ERC or visual inspection
+in KiCad.
 
 ### Breadboard module rules
 
@@ -63,7 +65,8 @@ browser viewer is not schematic authoring and does not replace native ERC.
    on auto-generated labels.
 4. Draw power, reset/boot, buses, interrupts, chip selects, enables, and unused-pin
    intent. Mark deliberate no-connects.
-5. Run ERC, explain intentional exceptions, and keep the report for release review.
+5. Run ERC, export a local review PDF with `make kicad-pdf`, explain intentional
+   exceptions, and keep the report for release review.
 6. For a temporary direct-stack or solderless-breadboard build, adapt
    `templates/project/electrical/breadboard-wiring.md` into
    `electrical/breadboard-wiring.md`.
