@@ -1,10 +1,11 @@
 PYTHON ?= python3.12
 VENV_PYTHON := .venv/bin/python
+PIO ?= pio
 KICAD_SCH ?= electrical/kicad/project.kicad_sch
 KICAD_PDF ?= electrical/reports/schematic.pdf
 SCAFFOLD_ROOT ?= ../..
 
-.PHONY: help check check-strict cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-toolcheck kicad-erc kicad-pdf clean-generated
+.PHONY: help check check-strict platformio-toolcheck platformio-build cad-setup cad cad-test cad-view wiring-setup wiring wiring-check kicad-toolcheck kicad-erc kicad-pdf clean-generated
 
 help:
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -14,6 +15,15 @@ check: ## Validate materialized project artifacts
 
 check-strict: ## Reject materialized placeholders and incomplete selected parts
 	@python3 $(SCAFFOLD_ROOT)/scripts/check_project.py --root . --strict
+
+platformio-toolcheck: ## Confirm pinned PlatformIO project configuration is readable
+	@test -f firmware/platformio.ini || { echo "firmware/platformio.ini is required"; exit 1; }
+	@command -v $(PIO) >/dev/null || { echo "PlatformIO Core is unavailable. Install it with the official isolated installer: https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html"; exit 1; }
+	@$(PIO) --version
+	@$(PIO) project config --project-dir firmware >/dev/null
+
+platformio-build: platformio-toolcheck ## Build the pinned PlatformIO firmware target
+	@$(PIO) run --project-dir firmware
 
 cad-setup: ## Create .venv and install CadQuery, tests, and interactive viewer support
 	@command -v $(PYTHON) >/dev/null || { echo "$(PYTHON) is required; install Python 3.12 or set PYTHON=/path/to/python3.12"; exit 1; }

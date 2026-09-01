@@ -20,6 +20,7 @@ REQUIRED_PATHS = (
     "Makefile",
     "README.md",
     "docs/domains/electrical.md",
+    "docs/domains/firmware.md",
     "docs/domains/system-design.md",
     "scripts/check_project.py",
     "scripts/init_project.py",
@@ -27,19 +28,28 @@ REQUIRED_PATHS = (
     "templates/project/Makefile",
     "templates/project/project.toml",
     "templates/project/docs/project-brief.md",
+    "templates/project/docs/firmware-plan.md",
     "templates/project/electrical/breadboard-wiring.md",
     "templates/project/electrical/kicad/README.md",
     "templates/project/electrical/wiring/harness.yml",
+    "templates/project/firmware/README.md",
     "templates/project/mechanical/src/project/assembly.py",
 )
 REQUIRED_TEXT = {
-    "Makefile": ("kicad-toolcheck:",),
+    "Makefile": ("kicad-toolcheck:", "platformio-toolcheck:", "platformio-build:"),
     "docs/domains/electrical.md": (
         "## Schematic tool and topology gate",
         "make kicad-toolcheck",
         "make kicad-pdf",
     ),
+    "docs/domains/firmware.md": (
+        "## Firmware phase entry gate",
+        "## Toolchain and first-build gate",
+        "zero exit status is not proof",
+    ),
     "templates/project/Makefile": (
+        "platformio-toolcheck:",
+        "platformio-build: platformio-toolcheck",
         "kicad-toolcheck:",
         "kicad-erc: kicad-toolcheck",
         "kicad-pdf: kicad-toolcheck",
@@ -51,6 +61,16 @@ REQUIRED_TEXT = {
     "templates/project/electrical/breadboard-wiring.md": (
         "## Physical module topology",
         "## Bench power connection",
+    ),
+    "templates/project/firmware/README.md": (
+        "## Target identity",
+        "## Upload and recovery",
+        "Retain failed and successful upload logs",
+    ),
+    "templates/project/docs/firmware-plan.md": (
+        "## Cross-phase invariants",
+        "## Phase — PROTO-###: narrow bring-up goal",
+        "### Exit",
     ),
 }
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")

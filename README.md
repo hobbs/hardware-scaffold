@@ -47,6 +47,8 @@ make help
 make check
 make init NAME="Desk Monitor" SLUG=desk-monitor GOAL="Measure and display indoor air quality for office occupants."
 make kicad-toolcheck
+make platformio-toolcheck PROJECT=projects/desk-monitor
+make platformio-build PROJECT=projects/desk-monitor
 make check-project PROJECT=projects/desk-monitor
 make check-strict PROJECT=projects/desk-monitor
 ```
@@ -57,6 +59,11 @@ schematic and ERC work; run it before committing to a `.kicad_sch` deliverable.
 Once a project has native schematic source and its stage-specific build command,
 `make kicad-pdf` exports the local review PDF with `kicad-cli`; no browser
 renderer is part of the workflow.
+For a selected PlatformIO stack, `platformio-toolcheck` confirms that the official
+Core CLI is available and the project's pinned configuration resolves;
+`platformio-build` performs the first host/toolchain compatibility gate without
+uploading hardware. Upload and monitor commands remain project-owned because power
+source rules, bootloader entry, ports, and success evidence differ by target.
 `check-project` accepts partial projects: metadata and the brief are required,
 while later-stage artifacts are checked only when present. `check-strict`
 additionally rejects placeholders in materialized project artifacts.

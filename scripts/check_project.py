@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import csv
 import hashlib
 from dataclasses import dataclass
@@ -44,6 +45,11 @@ CSV_SCHEMAS = {
 }
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
 PLACEHOLDER = re.compile(r"\b(?:TBD|TO BE DETERMINED|PLACEHOLDER)\b", re.IGNORECASE)
+FULL_GIT_COMMIT = re.compile(r"^[0-9a-fA-F]{40}$")
+EXACT_LIBRARY_VERSION = re.compile(
+    r"^=?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$"
+)
+MACHINE_LOCAL_PORT = re.compile(r"^(?:/dev/|COM\d+$)", re.IGNORECASE)
 IDENTIFIERS = {
     "part_id": re.compile(r"^PART-\d{3}$"),
     "source_id": re.compile(r"^SRC-\d{3}$"),
@@ -220,6 +226,102 @@ class Checks:
                         f"strict: parts/bom.csv:{line} status is not selected or later"
                     )
 
+    def firmware(self) -> None:
+        firmware = self.root / "firmware"
+        if not firmware.exists():
+            return
+        if not firmware.is_dir():
+            self.error("firmware exists but is not a directory")
+            return
+
+        readme = firmware / "README.md"
+        if not readme.is_file():
+            self.error(
+                "materialized firmware requires firmware/README.md with exact commands"
+            )
+
+        platformio = firmware / "platformio.ini"
+        if not platformio.exists():
+            return
+
+        parser = configparser.ConfigParser(interpolation=None, strict=False)
+        try:
+            with platformio.open(encoding="utf-8") as handle:
+                parser.read_file(handle)
+        except (OSError, configparser.Error) as exc:
+            self.error(f"firmware/platformio.ini is invalid: {exc}")
+            return
+
+        named_environments = [
+            section for section in parser.sections() if section.startswith("env:")
+        ]
+        if not named_environments:
+            self.error("firmware/platformio.ini has no [env:...] build environment")
+        environment_sections = [
+            section
+            for section in parser.sections()
+            if section == "env" or section.startswith("env:")
+        ]
+
+        for section_name in environment_sections:
+            section = parser[section_name]
+            platform = section.get("platform", "").strip()
+            self._check_pinned_git_spec(
+                platform, f"firmware/platformio.ini [{section_name}] platform"
+            )
+
+            for key in ("upload_port", "monitor_port"):
+                value = section.get(key, "").strip()
+                if value and MACHINE_LOCAL_PORT.match(value):
+                    self.error(
+                        f"firmware/platformio.ini [{section_name}] {key} "
+                        "contains a machine-local port"
+                    )
+
+            for raw_dependency in section.get("lib_deps", "").splitlines():
+                dependency = raw_dependency.strip()
+                if not dependency or dependency.startswith((";", "#", "${")):
+                    continue
+                if "=" in dependency and "://" not in dependency.split("=", 1)[0]:
+                    dependency = dependency.split("=", 1)[1].strip()
+                label = (
+                    f"firmware/platformio.ini [{section_name}] lib_deps "
+                    f"entry {raw_dependency.strip()!r}"
+                )
+                if dependency.startswith(("file://", "symlink://")):
+                    continue
+                if ".git" in dependency and "://" in dependency:
+                    self._check_pinned_git_spec(dependency, label)
+                    continue
+                if "@" not in dependency:
+                    self.error(f"{label} is not pinned to an exact version")
+                    continue
+                version = dependency.rsplit("@", 1)[1].strip()
+                if not EXACT_LIBRARY_VERSION.fullmatch(version):
+                    self.error(f"{label} is not pinned to an exact version")
+
+        ignore = self.root / ".gitignore"
+        if not ignore.is_file():
+            self.error("PlatformIO firmware requires a project .gitignore")
+            return
+        try:
+            ignored = {
+                line.strip()
+                for line in ignore.read_text(encoding="utf-8").splitlines()
+            }
+        except OSError as exc:
+            self.error(f"cannot read .gitignore for firmware checks: {exc}")
+        else:
+            if ".pio/" not in ignored:
+                self.error("PlatformIO firmware requires .pio/ in .gitignore")
+
+    def _check_pinned_git_spec(self, value: str, label: str) -> None:
+        if not value or ".git" not in value or "://" not in value:
+            return
+        revision = value.rsplit("#", 1)[1] if "#" in value else ""
+        if not FULL_GIT_COMMIT.fullmatch(revision):
+            self.error(f"{label} is not pinned to a full Git commit")
+
     def markdown_links(self) -> None:
         for path in self.root.rglob("*.md"):
             relative = path.relative_to(self.root)
@@ -287,6 +389,7 @@ class Checks:
         loaded, source_ids = self.csv_files()
         self.table_references(loaded, source_ids)
         self.source_files(loaded)
+        self.firmware()
         self.markdown_links()
         self.python_syntax()
         self.strict_placeholders()

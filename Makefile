@@ -1,10 +1,11 @@
 PYTHON ?= python3
+PIO ?= pio
 PROJECT ?=
 NAME ?=
 SLUG ?=
 GOAL ?=
 
-.PHONY: help check init check-project check-strict kicad-toolcheck
+.PHONY: help check init check-project check-strict kicad-toolcheck platformio-toolcheck platformio-build
 
 help: ## Show workspace commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -30,3 +31,13 @@ check-strict: ## Reject placeholders and incomplete selected parts in PROJECT
 kicad-toolcheck: ## Confirm native KiCad schematic and ERC tooling is available
 	@command -v kicad-cli >/dev/null || { echo "kicad-cli is unavailable. Install KiCad before creating or validating .kicad_sch source; until then, keep work in the interface contract, net registry, and signal-name wiring plan."; exit 1; }
 	@kicad-cli version
+
+platformio-toolcheck: ## Confirm pinned PlatformIO project configuration is readable
+	@test -n "$(PROJECT)" || { echo "PROJECT is required"; exit 1; }
+	@test -f "$(PROJECT)/firmware/platformio.ini" || { echo "$(PROJECT)/firmware/platformio.ini is required"; exit 1; }
+	@command -v $(PIO) >/dev/null || { echo "PlatformIO Core is unavailable. Install it with the official isolated installer: https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html"; exit 1; }
+	@$(PIO) --version
+	@$(PIO) project config --project-dir "$(PROJECT)/firmware" >/dev/null
+
+platformio-build: platformio-toolcheck ## Build the pinned PlatformIO firmware target
+	@$(PIO) run --project-dir "$(PROJECT)/firmware"
