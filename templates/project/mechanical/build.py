@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import sys
+from xml.etree import ElementTree as ET
 
 MECHANICAL_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(MECHANICAL_DIR / "src"))
@@ -40,6 +41,18 @@ def export_svg(shape, stem: str) -> None:
             "strokeWidth": 0.35,
         },
     )
+    # Keep black geometry visible in both light and dark review surfaces.
+    # SVG/CSS background styling is not honored by every rasterizer.
+    preview_path = MECHANICAL_DIR / "previews" / f"{stem}.svg"
+    tree = ET.parse(preview_path)
+    namespace = "http://www.w3.org/2000/svg"
+    ET.register_namespace("", namespace)
+    background = ET.Element(
+        f"{{{namespace}}}rect",
+        {"width": "100%", "height": "100%", "fill": "white"},
+    )
+    tree.getroot().insert(0, background)
+    tree.write(preview_path, encoding="utf-8", xml_declaration=True)
 
 
 def main() -> None:
